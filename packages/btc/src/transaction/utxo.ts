@@ -5,6 +5,7 @@ import { AddressType, AddressToPubkeyMap } from '../address';
 import { TxInput } from './build';
 import { limitPromiseBatchSize, remove0x, toXOnly } from '../utils';
 import { isP2trScript } from '../script';
+import { bitcoin } from '../bitcoin';
 
 export interface BaseOutput {
   txid: string;
@@ -50,6 +51,43 @@ export function utxoToInput(utxo: Utxo): TxInput {
         script: Buffer.from(remove0x(utxo.scriptPk), 'hex'),
       },
       tapInternalKey: toXOnly(Buffer.from(remove0x(utxo.pubkey), 'hex')),
+    };
+    return {
+      data,
+      utxo,
+    };
+  }
+
+  if (utxo.addressType === AddressType.P2SH) {
+    const data = {
+      hash: utxo.txid,
+      index: utxo.vout,
+      witnessUtxo: {
+        value: utxo.value,
+        script: Buffer.from(utxo.scriptPk, 'hex'),
+      },
+    };
+    return {
+      data,
+      utxo,
+    };
+  }
+
+  if (utxo.addressType === AddressType.P2SH_P2WPKH) {
+    if (!utxo.pubkey) {
+      throw TxBuildError.withComment(ErrorCodes.MISSING_PUBKEY, utxo.address);
+    }
+    const redeemData = bitcoin.payments.p2wpkh({
+      pubkey: Buffer.from(utxo.pubkey, 'hex'),
+    });
+    const data = {
+      hash: utxo.txid,
+      index: utxo.vout,
+      witnessUtxo: {
+        value: utxo.value,
+        script: Buffer.from(utxo.scriptPk, 'hex'),
+      },
+      redeemScript: redeemData.output,
     };
     return {
       data,

@@ -27,7 +27,12 @@ export type AddressToPubkeyMap = Record<string, string>;
  */
 export function isSupportedFromAddress(address: string) {
   const { addressType } = decodeAddress(address);
-  return addressType === AddressType.P2WPKH || addressType === AddressType.P2TR;
+  return (
+    addressType === AddressType.P2WPKH ||
+    addressType === AddressType.P2TR ||
+    addressType === AddressType.P2SH ||
+    addressType === AddressType.P2SH_P2WPKH
+  );
 }
 
 /**
